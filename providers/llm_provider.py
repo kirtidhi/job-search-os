@@ -7,7 +7,7 @@ class LLMProvider(ABC):
         pass
 
 class OpenAIProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "gpt-4o"):
+    def __init__(self, api_key: str = None, model: str = "gpt-5.5"):
         import openai
         self.client = openai.OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
         self.model = model
@@ -26,7 +26,7 @@ class OpenAIProvider(LLMProvider):
         return response.choices[0].message.content
 
 class AnthropicProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "claude-3-5-sonnet-20240620"):
+    def __init__(self, api_key: str = None, model: str = "claude-opus-4.8"):
         import anthropic
         self.client = anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
         self.model = model
@@ -45,7 +45,7 @@ class AnthropicProvider(LLMProvider):
         return response.content[0].text
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "gemini-2.5-pro"):
+    def __init__(self, api_key: str = None, model: str = "gemini-3.1-pro"):
         from google import genai
         from google.genai import types
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
