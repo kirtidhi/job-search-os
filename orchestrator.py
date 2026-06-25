@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import schedule
 import logging
@@ -33,12 +34,21 @@ class JobSearchOS:
         self.base_resume_path = os.getenv("BASE_RESUME_PATH", "base_resume.html")
         self.llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
         
+        # Load user config
+        try:
+            with open('config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            logger.warning("config.json not found. Using empty defaults. Please create config.json based on config.example.json.")
+            config = {"target_companies": [], "roles": [], "locations": [], "non_negotiables": []}
+
         logger.info(f"Initializing JobSearchOS with LLM Provider: {self.llm_provider.upper()}")
         
         # Initialize Modules
         self.scraper = ATSScraper(
-            target_companies=["Stripe", "Anthropic", "Google"],
-            role_preferences=["Product Manager", "Solutions Architect", "AI Engineer"]
+            target_companies=config.get("target_companies", []),
+            role_preferences=config.get("roles", []),
+            locations=config.get("locations", [])
         )
         self.resume_tailor = ResumeTailor(self.base_resume_path, llm_provider=self.llm_provider)
         self.researcher = CompanyResearcher(llm_provider=self.llm_provider)

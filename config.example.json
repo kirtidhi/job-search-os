@@ -1,0 +1,25 @@
+{
+  "target_companies": [
+    "stripe",
+    "anthropic",
+    "airbnb",
+    "spotify"
+  ],
+  "locations": [
+    "remote",
+    "san francisco",
+    "new york",
+    "sydney",
+    "singapore"
+  ],
+  "roles": [
+    "product manager",
+    "solutions architect",
+    "software engineer",
+    "engagement manager"
+  ],
+  "non_negotiables": [
+    "must offer remote work or flexible schedule",
+    "base salary above industry average"
+  ]
+}
