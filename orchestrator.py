@@ -2,6 +2,17 @@ import os
 import time
 import schedule
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Import pipeline modules
+from scrapers.ats_scraper import ATSScraper
+from agents.resume_tailor import ResumeTailor
+from agents.company_researcher import CompanyResearcher
+from agents.strategy_generator import StrategyGenerator
+from utils.workspace_sync import WorkspaceManager
 
 # Configure logging
 logging.basicConfig(
@@ -10,62 +21,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("JobSearchOS")
 
-# ---------------------------------------------------------------------------
-# MODULE STUBS
-# In a full deployment, these would be imported from the 'modules/' package.
-# Example: from modules.scraper import ATSScraper
-# ---------------------------------------------------------------------------
-
-class ATSScraper:
-    """Stage 1: Fetches Job Descriptions and applies initial filtering."""
-    def __init__(self, target_companies, role_preferences):
-        self.target_companies = target_companies
-        self.role_preferences = role_preferences
-
-    def get_matching_jobs(self):
-        logger.info("Scraping ATS portals for matching roles...")
-        # TODO: Implement scraping logic here (e.g., beautifulsoup, selenium, or ATS APIs)
-        # Returns a list of dicts: [{"company": "Stripe", "title": "...", "jd": "..."}]
-        return []
-
-class ResumeTailor:
-    """Stage 2: Analyzes JD against Base Resume to create a tailored HTML resume."""
-    def __init__(self, base_resume_path):
-        self.base_resume_path = base_resume_path
-
-    def tailor(self, job):
-        logger.info(f"Tailoring resume for {job.get('title')}...")
-        # TODO: Implement LLM logic to modify base HTML resume (strikethroughs/additions)
-        return {"content": "<html>...</html>", "filename": f"resume_{job.get('title')}.html"}
-
-class CompanyResearcher:
-    """Stage 3: Determines if company is public/private and fetches strategic news/reports."""
-    def research(self, company_name):
-        logger.info(f"Conducting deep research on {company_name}...")
-        # TODO: Implement web search or financial API lookups (e.g., Perplexity, Google Search API)
-        return {"strategy": "Company is focusing on X..."}
-
-class StrategyGenerator:
-    """Stage 4a: Generates a tailored Cover Letter and Interview Prototype Strategy."""
-    def generate(self, job, research_data):
-        logger.info("Generating Cover Letter and Prototype Strategy...")
-        # TODO: Implement LLM prompt using Job Description and Research Data
-        return {"content": "Strategy and Cover letter content..."}
-
-class WorkspaceManager:
-    """Stage 4b: Uploads assets to Google Drive and updates the Sheets Tracker."""
-    def __init__(self, tracker_sheet_id):
-        self.tracker_sheet_id = tracker_sheet_id
-
-    def sync(self, job, tailored_resume, strategy_doc):
-        logger.info(f"Syncing {job.get('title')} to Google Workspace...")
-        # TODO: Implement Google Drive and Sheets API logic
-        # 1. Ensure Company folder exists
-        # 2. Create Role subfolder
-        # 3. Upload HTML Resume
-        # 4. Upload Strategy Doc as Google Doc
-        # 5. Append row to Google Sheet Tracker
-        pass
 
 # ---------------------------------------------------------------------------
 # MAIN ORCHESTRATOR
@@ -76,15 +31,18 @@ class JobSearchOS:
         # Configuration
         self.tracker_sheet_id = os.getenv("TRACKER_SHEET_ID", "YOUR_GOOGLE_SHEET_ID")
         self.base_resume_path = os.getenv("BASE_RESUME_PATH", "base_resume.html")
+        self.llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
+        
+        logger.info(f"Initializing JobSearchOS with LLM Provider: {self.llm_provider.upper()}")
         
         # Initialize Modules
         self.scraper = ATSScraper(
             target_companies=["Stripe", "Anthropic", "Google"],
             role_preferences=["Product Manager", "Solutions Architect", "AI Engineer"]
         )
-        self.resume_tailor = ResumeTailor(self.base_resume_path)
-        self.researcher = CompanyResearcher()
-        self.strategy_gen = StrategyGenerator()
+        self.resume_tailor = ResumeTailor(self.base_resume_path, llm_provider=self.llm_provider)
+        self.researcher = CompanyResearcher(llm_provider=self.llm_provider)
+        self.strategy_gen = StrategyGenerator(llm_provider=self.llm_provider)
         self.workspace = WorkspaceManager(self.tracker_sheet_id)
 
     def run_daily_pipeline(self):
@@ -119,6 +77,7 @@ class JobSearchOS:
                 logger.error(f"Error processing {job.get('title')}: {str(e)}")
                 
         logger.info("=== Pipeline Completed ===")
+
 
 def main():
     os_instance = JobSearchOS()
