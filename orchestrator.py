@@ -13,7 +13,9 @@ from scrapers.ats_scraper import ATSScraper
 from agents.resume_tailor import ResumeTailor
 from agents.company_researcher import CompanyResearcher
 from agents.strategy_generator import StrategyGenerator
+from agents.fit_scorer import FitScorer
 from utils.workspace_sync import WorkspaceManager
+from utils.state_manager import StateManager
 
 # Configure logging
 logging.basicConfig(
@@ -40,7 +42,10 @@ class JobSearchOS:
                 config = json.load(f)
         except FileNotFoundError:
             logger.warning("config.json not found. Using empty defaults. Please create config.json based on config.example.json.")
-            config = {"target_companies": [], "roles": [], "locations": [], "non_negotiables": []}
+            config = {"target_companies": [], "roles": [], "locations": [], "non_negotiables": [], "fit_threshold": 0.6}
+            
+        self.non_negotiables = config.get("non_negotiables", [])
+        self.fit_threshold = config.get("fit_threshold", 0.6)
 
         logger.info(f"Initializing JobSearchOS with LLM Provider: {self.llm_provider.upper()}")
         
@@ -53,7 +58,9 @@ class JobSearchOS:
         self.resume_tailor = ResumeTailor(self.base_resume_path, llm_provider=self.llm_provider)
         self.researcher = CompanyResearcher(llm_provider=self.llm_provider)
         self.strategy_gen = StrategyGenerator(llm_provider=self.llm_provider)
+        self.fit_scorer = FitScorer(llm_provider=self.llm_provider)
         self.workspace = WorkspaceManager(self.tracker_sheet_id)
+        self.state_manager = StateManager()
 
     def run_daily_pipeline(self):
         logger.info("=== Starting Job Search OS Daily Pipeline ===")
@@ -67,7 +74,21 @@ class JobSearchOS:
             
         for job in jobs:
             try:
+                # 1.5 State Store Check
+                if not self.state_manager.is_new_role(job.get('url')):
+                    logger.info(f"Skipping already processed role: {job.get('title')} at {job.get('company')}")
+                    continue
+                    
                 logger.info(f"Processing Role: {job.get('title')} at {job.get('company')}")
+                
+                # 1.6 Semantic Fit Scoring
+                fit_data = self.fit_scorer.score_fit(job, self.non_negotiables)
+                logger.info(f"Fit Score: {fit_data['score']} - {fit_data['reason']}")
+                
+                if fit_data['score'] < self.fit_threshold:
+                    logger.info(f"Role rejected due to low fit score (< {self.fit_threshold}).")
+                    self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'REJECTED')
+                    continue
                 
                 # 2. Core Asset Tailoring
                 tailored_resume = self.resume_tailor.tailor(job)
@@ -80,6 +101,9 @@ class JobSearchOS:
                 
                 # 5. Workspace Sync
                 self.workspace.sync(job, tailored_resume, strategy_doc)
+                
+                # Mark as processed in state
+                self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'PROCESSED')
                 
                 logger.info(f"Successfully processed {job.get('title')} at {job.get('company')}")
                 
