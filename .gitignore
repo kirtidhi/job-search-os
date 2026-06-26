@@ -5,6 +5,7 @@ credentials.json
 token.json
 token.pickle
 Google Drive Workspace/
+output/
 *.html
 *.md
 !README.md

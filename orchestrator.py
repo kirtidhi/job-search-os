@@ -43,8 +43,8 @@ class JobSearchOS:
             with open('config.json', 'r') as f:
                 config = json.load(f)
         except FileNotFoundError:
-            logger.warning("config.json not found. Using empty defaults. Please create config.json based on config.example.json.")
-            config = {"target_companies": [], "roles": [], "locations": [], "non_negotiables": [], "fit_threshold": 0.6}
+            logger.critical("config.json not found. Create it from config.example.json and restart.")
+            import sys; sys.exit(1)
             
         self.non_negotiables = config.get("non_negotiables", [])
         self.fit_threshold = config.get("fit_threshold", 0.6)
