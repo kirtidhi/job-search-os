@@ -8,7 +8,7 @@ class ResumeTailor:
         self.base_resume_path = base_resume_path
         self.llm = get_llm_provider(llm_provider)
 
-    def tailor(self, job):
+    def tailor(self, job, output_dir):
         logger.info(f"Tailoring resume for {job.get('title')} at {job.get('company')}")
         
         # Load base resume
@@ -33,7 +33,8 @@ class ResumeTailor:
         if tailored_html.startswith("```html"):
             tailored_html = tailored_html[7:-3]
             
-        filename = f"resume_{job.get('title').replace(' ', '_')}.html"
+        import os
+        filename = os.path.join(output_dir, "resume.html")
         with open(filename, "w") as f:
             f.write(tailored_html)
             

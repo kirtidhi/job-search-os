@@ -51,7 +51,7 @@ class ATSScraper:
             resp = requests.get(url, timeout=10)
             soup = BeautifulSoup(resp.text, 'html.parser')
             # Very basic text extraction
-            return soup.get_text(separator='\\n', strip=True)
+            return soup.get_text(separator='\n', strip=True)
         except Exception as e:
             logger.error(f"Failed to fetch JD text for {url}: {e}")
             return ""

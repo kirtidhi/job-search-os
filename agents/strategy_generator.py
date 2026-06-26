@@ -1,4 +1,5 @@
 import logging
+import os
 from providers.llm_provider import get_llm_provider
 
 logger = logging.getLogger(__name__)
@@ -7,22 +8,34 @@ class StrategyGenerator:
     def __init__(self, llm_provider="openai"):
         self.llm = get_llm_provider(llm_provider)
 
-    def generate(self, job, research_data):
+    def generate(self, job, research_data, output_dir):
         logger.info(f"Generating Cover Letter and Prototype Strategy for {job.get('title')}")
-        
-        system_prompt = (
-            "You are an expert career strategist. "
-            "Given a Job Description and Company Research, output a markdown document containing: "
-            "1. An 'Interview Prototype Recommendation' (a specific project to build to impress them). "
-            "2. A highly tailored 'Cover Letter' that references their strategic initiatives."
-        )
         
         prompt = f"Job Description:\n{job.get('jd')}\n\nCompany Research:\n{research_data.get('strategy')}"
         
-        strategy_doc = self.llm.generate(prompt, system_prompt=system_prompt)
-        
-        filename = f"strategy_{job.get('title').replace(' ', '_')}.md"
-        with open(filename, "w") as f:
-            f.write(strategy_doc)
+        # 1. Playbook
+        playbook_sys = (
+            "You are an expert career strategist. "
+            "Given a Job Description and Company Research, output a markdown document containing "
+            "an 'Interview Prototype Recommendation' (a specific project to build to impress them)."
+        )
+        playbook_doc = self.llm.generate(prompt, system_prompt=playbook_sys)
+        playbook_path = os.path.join(output_dir, "playbook.md")
+        with open(playbook_path, "w") as f:
+            f.write(playbook_doc)
             
-        return {"content": strategy_doc, "filename": filename}
+        # 2. Cover Letter
+        cl_sys = (
+            "You are an expert career strategist. "
+            "Given a Job Description and Company Research, output a highly tailored 'Cover Letter' "
+            "that references their strategic initiatives."
+        )
+        cl_doc = self.llm.generate(prompt, system_prompt=cl_sys)
+        cl_path = os.path.join(output_dir, "cover_letter.md")
+        with open(cl_path, "w") as f:
+            f.write(cl_doc)
+            
+        return {
+            "playbook": playbook_path,
+            "cover_letter": cl_path
+        }

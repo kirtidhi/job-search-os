@@ -1,16 +1,78 @@
 import logging
+from google.auth import default
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from datetime import datetime
+import os
 
 logger = logging.getLogger(__name__)
 
 class WorkspaceManager:
     def __init__(self, tracker_sheet_id):
         self.tracker_sheet_id = tracker_sheet_id
+        try:
+            creds, _ = default(scopes=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets'])
+            self.drive_service = build('drive', 'v3', credentials=creds)
+            self.sheets_service = build('sheets', 'v4', credentials=creds)
+        except Exception as e:
+            logger.error(f"Failed to initialize Google API: {e}")
+            self.drive_service = None
+            self.sheets_service = None
 
-    def sync(self, job, tailored_resume, strategy_doc):
+    def _create_folder(self, name):
+        folder_metadata = {
+            'name': name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        folder = self.drive_service.files().create(body=folder_metadata, fields='id').execute()
+        return folder.get('id')
+
+    def _upload_file(self, filepath, folder_id, mimetype):
+        if not os.path.exists(filepath):
+            return ""
+        name = os.path.basename(filepath)
+        metadata = {'name': name, 'parents': [folder_id]}
+        media = MediaFileUpload(filepath, mimetype=mimetype)
+        file = self.drive_service.files().create(body=metadata, media_body=media, fields='id, webViewLink').execute()
+        return file.get('webViewLink')
+
+    def sync(self, job, tailored_resume_path, strategy_doc_path, cover_letter_path=None):
+        if not self.drive_service:
+            logger.warning("Workspace sync skipped - no Google credentials.")
+            return False
+            
         logger.info(f"Syncing assets for {job.get('title')} to Google Workspace...")
-        # In production, use google-api-python-client to upload to Drive and update Sheets.
-        # This requires OAuth credentials setup.
-        logger.info(f"Uploaded {tailored_resume['filename']} to Google Drive.")
-        logger.info(f"Uploaded {strategy_doc['filename']} to Google Drive.")
-        logger.info(f"Appended row to Tracker Sheet {self.tracker_sheet_id}")
-        return True
+        try:
+            # 1. Create Folder
+            folder_name = f"{job['company']} - {job['title']} - {datetime.now().strftime('%Y-%m-%d')}"
+            folder_id = self._create_folder(folder_name)
+            
+            # 2. Upload files
+            resume_link = self._upload_file(tailored_resume_path, folder_id, 'text/html')
+            strategy_link = self._upload_file(strategy_doc_path, folder_id, 'text/markdown')
+            cl_link = self._upload_file(cover_letter_path, folder_id, 'text/markdown') if cover_letter_path else ""
+            
+            # 3. Append to tracker sheet
+            if self.tracker_sheet_id and self.tracker_sheet_id != "YOUR_GOOGLE_SHEET_ID":
+                values = [[
+                    job['company'], 
+                    job['title'], 
+                    datetime.now().strftime('%Y-%m-%d'),
+                    resume_link,
+                    cl_link,
+                    strategy_link
+                ]]
+                body = {'values': values}
+                self.sheets_service.spreadsheets().values().append(
+                    spreadsheetId=self.tracker_sheet_id,
+                    range="Sheet1!A:F",
+                    valueInputOption="USER_ENTERED",
+                    body=body
+                ).execute()
+                logger.info(f"Appended row to Tracker Sheet {self.tracker_sheet_id}")
+            
+            logger.info("Successfully synced to Google Workspace.")
+            return True
+        except Exception as e:
+            logger.error(f"Error syncing to Workspace: {e}")
+            return False

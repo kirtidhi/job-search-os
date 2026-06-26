@@ -1,16 +1,16 @@
 import json
 import logging
-from providers.llm_provider import LLMProviderFactory
+from providers.llm_provider import get_llm_provider
 
 logger = logging.getLogger(__name__)
 
 class FitScorer:
     def __init__(self, llm_provider='openai'):
-        self.llm = LLMProviderFactory.get_provider(llm_provider)
+        self.llm = get_llm_provider(llm_provider)
 
-    def score_fit(self, job: dict, non_negotiables: list) -> dict:
+    def score_fit(self, job: dict, non_negotiables: list, base_resume: str) -> dict:
         prompt = f"""
-You are an expert technical recruiter analyzing a job description against a candidate's non-negotiables.
+You are an expert technical recruiter analyzing a job description against a candidate's non-negotiables and resume.
 
 JOB TITLE: {job.get('title')}
 COMPANY: {job.get('company')}
@@ -22,7 +22,10 @@ JOB DESCRIPTION:
 CANDIDATE'S NON-NEGOTIABLES:
 {json.dumps(non_negotiables, indent=2)}
 
-Analyze the job description and evaluate how well it matches the candidate's non-negotiables.
+CANDIDATE'S RESUME:
+{base_resume[:4000]}
+
+Analyze the job description and evaluate how well it matches the candidate's non-negotiables AND their resume background.
 Provide a fit score between 0.0 and 1.0 (where 1.0 is a perfect fit, and 0.0 is a terrible fit).
 Output your response as raw JSON matching this schema exactly:
 {{

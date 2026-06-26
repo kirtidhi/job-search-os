@@ -65,6 +65,12 @@ class JobSearchOS:
     def run_daily_pipeline(self):
         logger.info("=== Starting Job Search OS Daily Pipeline ===")
         
+        try:
+            with open(self.base_resume_path, 'r') as f:
+                base_resume_content = f.read()
+        except FileNotFoundError:
+            base_resume_content = "Placeholder base resume. Please set BASE_RESUME_PATH."
+            
         # 1. Ingestion & Filtering
         jobs = self.scraper.get_matching_jobs()
         if not jobs:
@@ -82,7 +88,7 @@ class JobSearchOS:
                 logger.info(f"Processing Role: {job.get('title')} at {job.get('company')}")
                 
                 # 1.6 Semantic Fit Scoring
-                fit_data = self.fit_scorer.score_fit(job, self.non_negotiables)
+                fit_data = self.fit_scorer.score_fit(job, self.non_negotiables, base_resume_content)
                 logger.info(f"Fit Score: {fit_data['score']} - {fit_data['reason']}")
                 
                 if fit_data['score'] < self.fit_threshold:
@@ -90,17 +96,21 @@ class JobSearchOS:
                     self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'REJECTED')
                     continue
                 
+                # 1.7 Create Output Directory
+                output_dir = os.path.join("output", f"{job.get('company')}_{job.get('title').replace(' ', '_')}")
+                os.makedirs(output_dir, exist_ok=True)
+                
                 # 2. Core Asset Tailoring
-                tailored_resume = self.resume_tailor.tailor(job)
+                tailored_resume = self.resume_tailor.tailor(job, output_dir)
                 
                 # 3. Deep Company Research
                 research_data = self.researcher.research(job.get('company'))
                 
                 # 4. Strategic Generation
-                strategy_doc = self.strategy_gen.generate(job, research_data)
+                strategy_docs = self.strategy_gen.generate(job, research_data, output_dir)
                 
                 # 5. Workspace Sync
-                self.workspace.sync(job, tailored_resume, strategy_doc)
+                self.workspace.sync(job, tailored_resume['filename'], strategy_docs['playbook'], strategy_docs['cover_letter'])
                 
                 # Mark as processed in state
                 self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'PROCESSED')
