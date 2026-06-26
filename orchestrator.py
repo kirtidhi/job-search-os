@@ -3,6 +3,8 @@ import json
 import time
 import schedule
 import logging
+import re
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -69,7 +71,8 @@ class JobSearchOS:
             with open(self.base_resume_path, 'r') as f:
                 base_resume_content = f.read()
         except FileNotFoundError:
-            base_resume_content = "Placeholder base resume. Please set BASE_RESUME_PATH."
+            logger.critical(f"Base resume not found at '{self.base_resume_path}'. Set BASE_RESUME_PATH and restart.")
+            return
             
         # 1. Ingestion & Filtering
         jobs = self.scraper.get_matching_jobs()
@@ -97,7 +100,9 @@ class JobSearchOS:
                     continue
                 
                 # 1.7 Create Output Directory
-                output_dir = os.path.join("output", f"{job.get('company')}_{job.get('title').replace(' ', '_')}")
+                title_safe = re.sub(r'[^\w\-]', '_', job.get('title', 'unknown'))
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                output_dir = os.path.join("output", f"{job.get('company', 'unknown')}_{title_safe}_{timestamp}")
                 os.makedirs(output_dir, exist_ok=True)
                 
                 # 2. Core Asset Tailoring
@@ -107,7 +112,7 @@ class JobSearchOS:
                 research_data = self.researcher.research(job.get('company'))
                 
                 # 4. Strategic Generation
-                strategy_docs = self.strategy_gen.generate(job, research_data, output_dir)
+                strategy_docs = self.strategy_gen.generate(job, research_data, output_dir, base_resume_content)
                 
                 # 5. Workspace Sync
                 self.workspace.sync(job, tailored_resume['filename'], strategy_docs['playbook'], strategy_docs['cover_letter'])

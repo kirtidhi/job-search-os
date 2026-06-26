@@ -8,10 +8,10 @@ class StrategyGenerator:
     def __init__(self, llm_provider="openai"):
         self.llm = get_llm_provider(llm_provider)
 
-    def generate(self, job, research_data, output_dir):
+    def generate(self, job, research_data, output_dir, base_resume=""):
         logger.info(f"Generating Cover Letter and Prototype Strategy for {job.get('title')}")
         
-        prompt = f"Job Description:\n{job.get('jd')}\n\nCompany Research:\n{research_data.get('strategy')}"
+        prompt = f"Job Description:\n{job.get('jd')}\n\nCompany Research:\n{research_data.get('strategy')}\n\nCandidate Resume:\n{base_resume[:3000]}"
         
         # 1. Playbook
         playbook_sys = (

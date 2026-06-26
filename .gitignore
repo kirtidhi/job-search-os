@@ -3,6 +3,7 @@ __pycache__/
 .env
 credentials.json
 token.json
+token.pickle
 Google Drive Workspace/
 *.html
 *.md

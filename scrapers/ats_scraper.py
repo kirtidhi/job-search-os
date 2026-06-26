@@ -56,6 +56,17 @@ class ATSScraper:
             logger.error(f"Failed to fetch JD text for {url}: {e}")
             return ""
 
+    def _fetch_jd_from_greenhouse_api(self, company, job_id):
+        url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{job_id}"
+        try:
+            resp = requests.get(url, timeout=10)
+            data = resp.json()
+            soup = BeautifulSoup(data.get('content', ''), 'html.parser')
+            return soup.get_text(separator='\n', strip=True)
+        except Exception as e:
+            logger.error(f"Failed to fetch JD text for {company} job {job_id}: {e}")
+            return ""
+
     def get_matching_jobs(self):
         logger.info("Fetching jobs from configured ATS sources...")
         all_matched_jobs = []
@@ -68,10 +79,12 @@ class ATSScraper:
                 jobs, ats_type = self._fetch_from_lever(company)
                 
             for job in jobs:
+                job_id = None
                 if ats_type == 'greenhouse':
                     title = job.get('title', '')
                     location = job.get('location', {}).get('name', '')
                     url = job.get('absolute_url', '')
+                    job_id = job.get('id')
                 elif ats_type == 'lever':
                     title = job.get('text', '')
                     location = job.get('categories', {}).get('location', '')
@@ -81,7 +94,10 @@ class ATSScraper:
                     
                 if self._is_match(title, location):
                     logger.info(f"Found match: {title} at {company}")
-                    jd_text = self._fetch_jd_text(url)
+                    if ats_type == 'greenhouse' and job_id:
+                        jd_text = self._fetch_jd_from_greenhouse_api(company, job_id)
+                    else:
+                        jd_text = self._fetch_jd_text(url)
                     all_matched_jobs.append({
                         "company": company.capitalize(),
                         "title": title,

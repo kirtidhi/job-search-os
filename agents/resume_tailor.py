@@ -1,4 +1,5 @@
 import logging
+import os
 from providers.llm_provider import get_llm_provider
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,6 @@ class ResumeTailor:
         if tailored_html.startswith("```html"):
             tailored_html = tailored_html[7:-3]
             
-        import os
         filename = os.path.join(output_dir, "resume.html")
         with open(filename, "w") as f:
             f.write(tailored_html)
