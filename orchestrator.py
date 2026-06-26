@@ -46,6 +46,9 @@ class JobSearchOS:
         except FileNotFoundError:
             logger.critical("config.json not found. Create it from config.example.json and restart.")
             sys.exit(1)
+        except json.JSONDecodeError as e:
+            logger.critical(f"config.json is malformed: {e}. Fix the JSON syntax and restart.")
+            sys.exit(1)
             
         self.non_negotiables = config.get("non_negotiables", [])
         self.fit_threshold = config.get("fit_threshold", 0.6)

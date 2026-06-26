@@ -17,7 +17,7 @@ COMPANY: {job.get('company')}
 LOCATION: {job.get('location')}
 
 JOB DESCRIPTION:
-{job.get('jd')[:4000]}
+{job.get('jd', '')[:4000]}
 
 CANDIDATE'S NON-NEGOTIABLES:
 {json.dumps(non_negotiables, indent=2)}
