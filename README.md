@@ -31,8 +31,11 @@ The pipeline consists of 5 stages, orchestrated by `orchestrator.py`:
    - On the first run, the system will prompt you to authenticate via your browser to grant the script access to create folders and update your tracker sheet.
 
 4. **Environment Variables:**
-   - Set `TRACKER_SHEET_ID` to your Google Sheet ID.
-   - Set `BASE_RESUME_PATH` to the path of your base resume.
+   Copy `.env.example` to `.env` and fill in your values:
+   - `LLM_PROVIDER` — `openai`, `anthropic`, or `gemini`
+   - The corresponding API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY`)
+   - `TRACKER_SHEET_ID` — your Google Sheet ID
+   - `BASE_RESUME_PATH` — path to your base resume HTML file
 
 ## Usage
 

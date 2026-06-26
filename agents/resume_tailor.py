@@ -31,9 +31,11 @@ class ResumeTailor:
         
         tailored_html = self.llm.generate(prompt, system_prompt=system_prompt)
         
-        # Strip markdown formatting if present
-        if tailored_html.startswith("```html"):
-            tailored_html = tailored_html[7:-3]
+        tailored_html = tailored_html.strip()
+        if tailored_html.startswith("```"):
+            tailored_html = tailored_html.split('\n', 1)[1]
+        if tailored_html.endswith("```"):
+            tailored_html = tailored_html.rsplit('\n', 1)[0]
             
         filename = os.path.join(output_dir, "resume.html")
         with open(filename, "w") as f:

@@ -1,5 +1,6 @@
 import logging
 import requests
+import re
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,10 @@ class ATSScraper:
         location = location.lower() if location else ""
         
         # Check if role matches
-        role_match = any(role in title for role in self.role_preferences)
+        role_match = any(
+            re.search(r'\b' + re.escape(role) + r'\b', title)
+            for role in self.role_preferences
+        )
         if not role_match:
             return False
             
