@@ -26,7 +26,7 @@ class OpenAIProvider(LLMProvider):
         return response.choices[0].message.content
 
 class AnthropicProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "claude-opus-4.8"):
+    def __init__(self, api_key: str = None, model: str = "claude-opus-4-8"):
         import anthropic
         self.client = anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
         self.model = model
