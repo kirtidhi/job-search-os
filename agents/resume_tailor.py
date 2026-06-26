@@ -17,7 +17,8 @@ class ResumeTailor:
             with open(self.base_resume_path, 'r') as f:
                 base_resume = f.read()
         except FileNotFoundError:
-            base_resume = "<html><body>Placeholder base resume. Please set BASE_RESUME_PATH.</body></html>"
+            logger.critical(f"Base resume not found at '{self.base_resume_path}'.")
+            raise
             
         system_prompt = (
             "You are an expert technical recruiter and resume writer. "

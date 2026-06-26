@@ -44,6 +44,7 @@ class WorkspaceManager:
 
     def _upload_file(self, filepath, folder_id, mimetype):
         if not os.path.exists(filepath):
+            logger.warning(f"File not found for upload, skipping: {filepath}")
             return ""
         name = os.path.basename(filepath)
         metadata = {'name': name, 'parents': [folder_id]}
@@ -51,7 +52,7 @@ class WorkspaceManager:
         file = self.drive_service.files().create(body=metadata, media_body=media, fields='id, webViewLink').execute()
         return file.get('webViewLink')
 
-    def sync(self, job, tailored_resume_path, strategy_doc_path, cover_letter_path=None):
+    def sync(self, job, tailored_resume_path, strategy_doc_path, cover_letter_path=None, fit_data=None):
         if not self.drive_service:
             logger.warning("Workspace sync skipped - no Google credentials.")
             return False
@@ -72,7 +73,9 @@ class WorkspaceManager:
                 values = [[
                     job['company'], 
                     job['title'], 
+                    job.get('url', ''),
                     datetime.now().strftime('%Y-%m-%d'),
+                    fit_data['score'] if fit_data else '',
                     resume_link,
                     cl_link,
                     strategy_link
@@ -80,7 +83,7 @@ class WorkspaceManager:
                 body = {'values': values}
                 self.sheets_service.spreadsheets().values().append(
                     spreadsheetId=self.tracker_sheet_id,
-                    range="Sheet1!A:F",
+                    range="Sheet1!A:H",
                     valueInputOption="USER_ENTERED",
                     body=body
                 ).execute()

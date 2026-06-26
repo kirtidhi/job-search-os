@@ -115,7 +115,7 @@ class JobSearchOS:
                 strategy_docs = self.strategy_gen.generate(job, research_data, output_dir, base_resume_content)
                 
                 # 5. Workspace Sync
-                self.workspace.sync(job, tailored_resume['filename'], strategy_docs['playbook'], strategy_docs['cover_letter'])
+                self.workspace.sync(job, tailored_resume['filename'], strategy_docs['playbook'], strategy_docs['cover_letter'], fit_data)
                 
                 # Mark as processed in state
                 self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'PROCESSED')
