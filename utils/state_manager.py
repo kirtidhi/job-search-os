@@ -36,7 +36,7 @@ class StateManager:
                 return result is None
         except Exception as e:
             logger.error(f"Error checking state for url {url}: {e}")
-            return False
+            return True
 
     def mark_seen(self, url: str, company: str, title: str, fit_score: float, status: str):
         try:

@@ -1,3 +1,4 @@
+import sys
 import os
 import json
 import time
@@ -44,7 +45,7 @@ class JobSearchOS:
                 config = json.load(f)
         except FileNotFoundError:
             logger.critical("config.json not found. Create it from config.example.json and restart.")
-            import sys; sys.exit(1)
+            sys.exit(1)
             
         self.non_negotiables = config.get("non_negotiables", [])
         self.fit_threshold = config.get("fit_threshold", 0.6)

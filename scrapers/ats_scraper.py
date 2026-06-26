@@ -53,6 +53,9 @@ class ATSScraper:
     def _fetch_jd_text(self, url):
         try:
             resp = requests.get(url, timeout=10)
+            if resp.status_code != 200:
+                logger.warning(f"Unexpected status {resp.status_code} fetching JD from {url}")
+                return ""
             soup = BeautifulSoup(resp.text, 'html.parser')
             # Very basic text extraction
             return soup.get_text(separator='\n', strip=True)
@@ -64,6 +67,9 @@ class ATSScraper:
         url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{job_id}"
         try:
             resp = requests.get(url, timeout=10)
+            if resp.status_code != 200:
+                logger.warning(f"Unexpected status {resp.status_code} fetching JD from {url}")
+                return ""
             data = resp.json()
             soup = BeautifulSoup(data.get('content', ''), 'html.parser')
             return soup.get_text(separator='\n', strip=True)

@@ -27,8 +27,11 @@ class ResumeTailor:
             "and new content in <span style='color:blue'>blue</span>. Return ONLY valid HTML."
         )
         
-        prompt = f"Job Description:\n{job.get('jd')}\n\nBase Resume:\n{base_resume}"
+        jd_text = job.get('jd', '')[:6000]
+        prompt = f"Job Description:\n{jd_text}\n\nBase Resume:\n{base_resume}"
         
+        if len(base_resume) > 15000:
+            logger.warning(f"Base resume is {len(base_resume)} chars - consider a leaner HTML template")        
         tailored_html = self.llm.generate(prompt, system_prompt=system_prompt)
         
         tailored_html = tailored_html.strip()
