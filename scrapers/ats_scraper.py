@@ -91,39 +91,70 @@ class ATSScraper:
         logger.info("Fetching jobs from configured ATS sources...")
         all_matched_jobs = []
         
-        for company in self.target_companies:
-            logger.info(f"Checking {company}...")
+        remaining_companies = set(self.target_companies)
+        
+        # 1. Tier 1: ATS APIs (Greenhouse, Lever)
+        for company in list(remaining_companies):
+            logger.info(f"Checking API sources for {company}...")
             
             jobs, ats_type = self._fetch_from_greenhouse(company)
             if not jobs:
                 jobs, ats_type = self._fetch_from_lever(company)
                 
-            for job in jobs:
-                job_id = None
-                if ats_type == 'greenhouse':
-                    title = job.get('title', '')
-                    location = job.get('location', {}).get('name', '')
-                    url = job.get('absolute_url', '')
-                    job_id = job.get('id')
-                elif ats_type == 'lever':
-                    title = job.get('text', '')
-                    location = job.get('categories', {}).get('location', '')
-                    url = job.get('hostedUrl', '')
-                else:
-                    continue
-                    
-                if self._is_match(title, location):
-                    logger.info(f"Found match: {title} at {company}")
-                    if ats_type == 'greenhouse' and job_id:
-                        jd_text = self._fetch_jd_from_greenhouse_api(company, job_id)
+            if jobs or ats_type is not None:
+                # We found an API for this company, process jobs and remove from remaining
+                remaining_companies.remove(company)
+                
+                for job in jobs:
+                    job_id = None
+                    if ats_type == 'greenhouse':
+                        title = job.get('title', '')
+                        location = job.get('location', {}).get('name', '')
+                        url = job.get('absolute_url', '')
+                        job_id = job.get('id')
+                    elif ats_type == 'lever':
+                        title = job.get('text', '')
+                        location = job.get('categories', {}).get('location', '')
+                        url = job.get('hostedUrl', '')
                     else:
-                        jd_text = self._fetch_jd_text(url)
-                    all_matched_jobs.append({
-                        "company": company.capitalize(),
-                        "title": title,
-                        "url": url,
-                        "location": location,
-                        "jd": jd_text
-                    })
-                    
+                        continue
+                        
+                    if self._is_match(title, location):
+                        logger.info(f"Found match: {title} at {company}")
+                        if ats_type == 'greenhouse' and job_id:
+                            jd_text = self._fetch_jd_from_greenhouse_api(company, job_id)
+                        else:
+                            jd_text = self._fetch_jd_text(url)
+                            
+                        all_matched_jobs.append({
+                            "company": company.capitalize(),
+                            "title": title,
+                            "url": url,
+                            "location": location,
+                            "jd": jd_text
+                        })
+
+        # 2. Tier 2 Option A: Headless Scraper (Workday, iCIMS, custom)
+        if remaining_companies:
+            from scrapers.headless_scraper import HeadlessScraper
+            logger.info(f"Routing {len(remaining_companies)} remaining companies to Headless Scraper...")
+            
+            headless = HeadlessScraper(list(remaining_companies), self.role_preferences, self.locations)
+            headless_jobs, processed_companies = headless.get_matching_jobs()
+            
+            all_matched_jobs.extend(headless_jobs)
+            for pc in processed_companies:
+                if pc in remaining_companies:
+                    remaining_companies.remove(pc)
+
+        # 3. Tier 2 Option B: Paid API Fallback
+        if remaining_companies:
+            from scrapers.paid_api_scraper import PaidAPIScraper
+            logger.info(f"Routing {len(remaining_companies)} remaining companies to Paid API Fallback...")
+            
+            paid_api = PaidAPIScraper(list(remaining_companies), self.role_preferences, self.locations)
+            paid_jobs = paid_api.get_matching_jobs()
+            
+            all_matched_jobs.extend(paid_jobs)
+            
         return all_matched_jobs
