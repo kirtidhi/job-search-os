@@ -63,6 +63,25 @@ class GeminiProvider(LLMProvider):
         )
         return response.text
 
+class MockProvider(LLMProvider):
+    def __init__(self, **kwargs):
+        pass
+    def generate(self, prompt: str, system_prompt: str = None) -> str:
+        if system_prompt and "JSON" in system_prompt:
+            return '{"fit_score": 0.9, "reason": "Perfect mock fit.", "meets_all_non_negotiables": true}'
+        
+        if system_prompt and "HTML" in system_prompt:
+            return "<html><body><h1>Mock Tailored Resume</h1></body></html>"
+            
+        if system_prompt and "Interview Prototype" in system_prompt:
+            return "# Mock Playbook\nThis is a mock strategy playbook."
+            
+        if system_prompt and "Cover Letter" in system_prompt:
+            return "# Mock Cover Letter\nThis is a mock cover letter."
+            
+        # fallback
+        return '{"strategy": "Mock strategy research"}'
+
 def get_llm_provider(provider_name: str, **kwargs) -> LLMProvider:
     provider_name = provider_name.lower()
     if provider_name == "openai":
@@ -71,5 +90,7 @@ def get_llm_provider(provider_name: str, **kwargs) -> LLMProvider:
         return AnthropicProvider(**kwargs)
     elif provider_name == "gemini" or provider_name == "google":
         return GeminiProvider(**kwargs)
+    elif provider_name == "mock":
+        return MockProvider(**kwargs)
     else:
         raise ValueError(f"Unknown LLM provider: {provider_name}")

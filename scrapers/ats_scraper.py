@@ -11,8 +11,15 @@ class ATSScraper:
         self.role_preferences = [r.lower() for r in role_preferences]
         self.locations = [l.lower() for l in locations]
 
+    def _normalize_name(self, name):
+        name = name.lower()
+        import re
+        name = re.sub(r'[^a-z0-9]', '', name)
+        return name
+
     def _fetch_from_greenhouse(self, company):
-        url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
+        norm_company = self._normalize_name(company)
+        url = f"https://boards-api.greenhouse.io/v1/boards/{norm_company}/jobs"
         try:
             response = requests.get(url, timeout=10)
             if response.status_code == 200:
@@ -22,7 +29,8 @@ class ATSScraper:
         return [], None
 
     def _fetch_from_lever(self, company):
-        url = f"https://api.lever.co/v0/postings/{company}"
+        norm_company = self._normalize_name(company)
+        url = f"https://api.lever.co/v0/postings/{norm_company}"
         try:
             response = requests.get(url, timeout=10)
             if response.status_code == 200:
@@ -44,9 +52,10 @@ class ATSScraper:
             return False
             
         # Check if location matches
-        loc_match = any(loc in location for loc in self.locations)
-        if not loc_match:
-            return False
+        if self.locations:
+            loc_match = any(loc in location for loc in self.locations)
+            if not loc_match:
+                return False
             
         return True
 
@@ -64,7 +73,8 @@ class ATSScraper:
             return ""
 
     def _fetch_jd_from_greenhouse_api(self, company, job_id):
-        url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs/{job_id}"
+        norm_company = self._normalize_name(company)
+        url = f"https://boards-api.greenhouse.io/v1/boards/{norm_company}/jobs/{job_id}"
         try:
             resp = requests.get(url, timeout=10)
             if resp.status_code != 200:
