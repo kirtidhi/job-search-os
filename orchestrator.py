@@ -68,8 +68,8 @@ class JobSearchOS:
         self.workspace = WorkspaceManager(self.tracker_sheet_id)
         self.state_manager = StateManager()
 
-    def run_daily_pipeline(self):
-        logger.info("=== Starting Job Search OS Daily Pipeline ===")
+    def run_daily_pipeline(self, step="all"):
+        logger.info(f"=== Starting Job Search OS Pipeline (Step: {step}) ===")
         
         try:
             with open(self.base_resume_path, 'r') as f:
@@ -78,8 +78,12 @@ class JobSearchOS:
             logger.critical(f"Base resume not found at '{self.base_resume_path}'. Set BASE_RESUME_PATH and restart.")
             return
             
-        # 1. Ingestion & Filtering
-        jobs = self.scraper.get_matching_jobs()
+        roles_to_process = []
+        pending_roles_file = "pending_roles.json"
+
+        if step in ["all", "interim"]:
+            # 1. Ingestion & Filtering
+            jobs = self.scraper.get_matching_jobs()
         if not jobs:
             logger.info("No new matching jobs found today.")
             logger.info("=== Pipeline Completed ===")
@@ -152,31 +156,34 @@ class JobSearchOS:
         logger.info(f"Interim report generated: interim_report.md. Proceeding to asset generation for {len(roles_to_process)} roles.")
 
         # --- INTERIM APPROVAL STAGE ---
-        pending_roles_file = "pending_roles.json"
         with open(pending_roles_file, "w") as f:
             json.dump(roles_to_process, f, indent=2)
             
         logger.info(f"Saved pending roles to {pending_roles_file}.")
         logger.info("ACTION REQUIRED: Please review interim_report.md.")
-        logger.info(f"If you want to skip any approved roles, remove them from {pending_roles_file} and save the file.")
         
-        # Pause for user approval
+        if step == "interim":
+            logger.info("Step 'interim' completed. Exiting. Run with '--step generate' to resume.")
+            return
+            
+        # Pause for user approval if running 'all' interactively
         if sys.stdin.isatty():
             user_input = input("\nPress Enter to approve and proceed to Stage 2 (Asset Generation), or type 'cancel' to stop: ")
             if user_input.strip().lower() == 'cancel':
                 logger.info("Pipeline cancelled by user.")
                 return
         else:
-            logger.info("Running in non-interactive mode. Proceeding automatically in 10 seconds...")
-            time.sleep(10)
+            logger.info("Running in non-interactive mode. Proceeding automatically to generation...")
             
+    if step in ["all", "generate"]:
         # Re-load roles after potential user modifications
         try:
             with open(pending_roles_file, "r") as f:
                 roles_to_process = json.load(f)
-            logger.info(f"Resuming with {len(roles_to_process)} roles after approval.")
+            logger.info(f"Resuming with {len(roles_to_process)} roles for generation.")
         except Exception as e:
-            logger.error(f"Could not load {pending_roles_file}: {e}. Proceeding with original list.")
+            logger.error(f"Could not load {pending_roles_file}: {e}. Aborting generation.")
+            return
 
         # --- ASSET GENERATION ---
         for item in roles_to_process:
@@ -213,22 +220,30 @@ class JobSearchOS:
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="JobSearchOS Orchestrator")
+    parser.add_argument("--step", choices=["all", "interim", "generate"], default="all", help="Which step to run")
+    parser.add_argument("--scheduled", action="store_true", help="Run in scheduled background mode")
+    args = parser.parse_args()
+
     os_instance = JobSearchOS()
     
-    # Optional: Run immediately once on startup
-    logger.info("Running initial startup execution...")
-    os_instance.run_daily_pipeline()
-    
-    # Schedule the job to run every day at 9:00 AM
-    schedule.every().day.at("09:00").do(os_instance.run_daily_pipeline)
-    
-    logger.info("Job Search OS is now scheduled and running in the background.")
-    logger.info("Waiting for next execution time...")
-    
-    # Keep the script running
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+    if args.scheduled:
+        logger.info("Running initial startup execution...")
+        os_instance.run_daily_pipeline(step="all")
+        
+        # Schedule the job to run every day at 9:00 AM
+        schedule.every().day.at("09:00").do(os_instance.run_daily_pipeline, step="all")
+        
+        logger.info("Job Search OS is now scheduled and running in the background.")
+        logger.info("Waiting for next execution time...")
+        
+        # Keep the script running
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+    else:
+        os_instance.run_daily_pipeline(step=args.step)
 
 if __name__ == "__main__":
     main()
