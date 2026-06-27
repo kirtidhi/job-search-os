@@ -140,6 +140,33 @@ class JobSearchOS:
         
         logger.info(f"Interim report generated: interim_report.md. Proceeding to asset generation for {len(roles_to_process)} roles.")
 
+        # --- INTERIM APPROVAL STAGE ---
+        pending_roles_file = "pending_roles.json"
+        with open(pending_roles_file, "w") as f:
+            json.dump(roles_to_process, f, indent=2)
+            
+        logger.info(f"Saved pending roles to {pending_roles_file}.")
+        logger.info("ACTION REQUIRED: Please review interim_report.md.")
+        logger.info(f"If you want to skip any approved roles, remove them from {pending_roles_file} and save the file.")
+        
+        # Pause for user approval
+        if sys.stdin.isatty():
+            user_input = input("\nPress Enter to approve and proceed to Stage 2 (Asset Generation), or type 'cancel' to stop: ")
+            if user_input.strip().lower() == 'cancel':
+                logger.info("Pipeline cancelled by user.")
+                return
+        else:
+            logger.info("Running in non-interactive mode. Proceeding automatically in 10 seconds...")
+            time.sleep(10)
+            
+        # Re-load roles after potential user modifications
+        try:
+            with open(pending_roles_file, "r") as f:
+                roles_to_process = json.load(f)
+            logger.info(f"Resuming with {len(roles_to_process)} roles after approval.")
+        except Exception as e:
+            logger.error(f"Could not load {pending_roles_file}: {e}. Proceeding with original list.")
+
         # --- ASSET GENERATION ---
         for item in roles_to_process:
             job = item["job"]
