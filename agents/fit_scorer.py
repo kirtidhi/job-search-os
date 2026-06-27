@@ -12,25 +12,35 @@ class FitScorer:
         prompt = f"""
 You are an expert technical recruiter analyzing a job description against a candidate's non-negotiables and resume.
 
+Instead of just doing keyword matching, extract the underlying Semantic Profile of the candidate and the job.
+
+CANDIDATE'S RESUME:
+{base_resume[:4000]}
+
+Based on the resume, the candidate is a Product Manager / Solutions Architect specializing in:
+- Domain: Payments, FinTech, Identity, AdTech, B2B Enterprise APIs
+- Archetype: Product Manager, Pre-Sales, Solutions Architecture
+
+JOB DESCRIPTION TO ANALYZE:
 JOB TITLE: {job.get('title')}
 COMPANY: {job.get('company')}
 LOCATION: {job.get('location')}
-
-JOB DESCRIPTION:
 {job.get('jd', '')[:4000]}
 
 CANDIDATE'S NON-NEGOTIABLES:
 {json.dumps(non_negotiables, indent=2)}
 
-CANDIDATE'S RESUME:
-{base_resume[:4000]}
+INSTRUCTIONS:
+1. Compare the Job's Domain (e.g. B2C Travel, B2B Payments, Core Infrastructure) to the Candidate's Domain.
+2. Compare the Job's Archetype (e.g. Hands-on Software Engineer vs Product Manager vs Architect) to the Candidate's Archetype.
+3. If there is a massive Domain mismatch (e.g. B2C Travel vs B2B Payments) OR an Archetype mismatch (e.g. SWE vs PM), the fit score should drop drastically (below 0.6).
+4. Provide a fit score between 0.0 and 1.0.
+5. CRITICAL RULE: If the job violates ANY of the Candidate's Non-Negotiables (including location or language requirements), you MUST set "meets_all_non_negotiables" to false AND set "fit_score" to exactly 0.0, regardless of how good the Domain or Archetype match is.
 
-Analyze the job description and evaluate how well it matches the candidate's non-negotiables AND their resume background.
-Provide a fit score between 0.0 and 1.0 (where 1.0 is a perfect fit, and 0.0 is a terrible fit).
 Output your response as raw JSON matching this schema exactly:
 {{
   "fit_score": 0.8,
-  "reason": "Brief explanation of why it fits or fails",
+  "reason": "Brief explanation focused on Domain, Archetype alignment, and Non-Negotiables.",
   "meets_all_non_negotiables": true
 }}
 """

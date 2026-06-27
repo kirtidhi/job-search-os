@@ -85,6 +85,12 @@ class JobSearchOS:
             logger.info("=== Pipeline Completed ===")
             return
             
+        companies_found = len(set(job.get('company') for job in jobs))
+        logger.info(f"Interim Stage: Found {len(jobs)} roles across {companies_found} companies.")
+
+        roles_to_process = []
+        filtered_out_roles = []
+            
         for job in jobs:
             try:
                 # 1.5 State Store Check
@@ -101,8 +107,44 @@ class JobSearchOS:
                 if fit_data['score'] < self.fit_threshold:
                     logger.info(f"Role rejected due to low fit score (< {self.fit_threshold}).")
                     self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'REJECTED')
+                    filtered_out_roles.append({"job": job, "fit_data": fit_data})
                     continue
                 
+                roles_to_process.append({"job": job, "fit_data": fit_data})
+            except Exception as e:
+                logger.error(f"Error scoring {job.get('title')}: {str(e)}")
+                
+        # --- INTERIM REPORT ---
+        report_content = f"# Interim Pipeline Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        report_content += f"**Total Roles Found:** {len(jobs)}\n"
+        report_content += f"**Companies Searched:** {companies_found}\n"
+        report_content += f"**Roles Proceeding to Generation:** {len(roles_to_process)}\n"
+        report_content += f"**Roles Filtered Out:** {len(filtered_out_roles)}\n\n"
+        
+        non_negotiable_failures = [r for r in filtered_out_roles if not r['fit_data'].get('meets_all', True)]
+        if non_negotiable_failures:
+            report_content += "## Filtered Due to Non-Negotiables\n"
+            for r in non_negotiable_failures:
+                report_content += f"- **{r['job'].get('company')} - {r['job'].get('title')}**: {r['fit_data'].get('reason')}\n"
+            report_content += "\n"
+
+        other_failures = [r for r in filtered_out_roles if r['fit_data'].get('meets_all', True)]
+        if other_failures:
+            report_content += "## Filtered Due to Low Fit Score (Domain/Archetype)\n"
+            for r in other_failures:
+                report_content += f"- **{r['job'].get('company')} - {r['job'].get('title')}**: {r['fit_data'].get('reason')}\n"
+            report_content += "\n"
+
+        with open("interim_report.md", "w") as f:
+            f.write(report_content)
+        
+        logger.info(f"Interim report generated: interim_report.md. Proceeding to asset generation for {len(roles_to_process)} roles.")
+
+        # --- ASSET GENERATION ---
+        for item in roles_to_process:
+            job = item["job"]
+            fit_data = item["fit_data"]
+            try:
                 # 1.7 Create Output Directory
                 title_safe = re.sub(r'[^\w\-]', '_', job.get('title', 'unknown'))
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
