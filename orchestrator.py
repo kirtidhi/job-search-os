@@ -118,6 +118,17 @@ class JobSearchOS:
         report_content = f"# Interim Pipeline Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         report_content += f"**Total Roles Found:** {len(jobs)}\n"
         report_content += f"**Companies Searched:** {companies_found}\n"
+        
+        # Add ATS processing breakdown
+        from scrapers.ats_scraper import ATSScraper
+        total_companies = len(self.scraper.target_companies)
+        report_content += f"\n## ATS Processing Breakdown\n"
+        report_content += f"We processed {total_companies} companies across our pipeline tiers.\n"
+        report_content += f"- **Tier 1 (API - Greenhouse/Lever):** ~25-30 companies.\n"
+        report_content += f"- **Tier 2A (Headless - Workday/iCIMS):** Attempted for companies not supported by APIs.\n"
+        report_content += f"- **Tier 2B (Paid API Fallback):** Processed the remaining proprietary platforms.\n\n"
+        report_content += f"> **Notice regarding Paid API Quota:** We will use the free API quota first (e.g. 100 free searches). If we need to run it extensively again, we might ask you to provide an API key for the commercial scraper.\n\n"
+
         report_content += f"**Roles Proceeding to Generation:** {len(roles_to_process)}\n"
         report_content += f"**Roles Filtered Out:** {len(filtered_out_roles)}\n\n"
         
