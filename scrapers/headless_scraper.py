@@ -28,6 +28,35 @@ class HeadlessScraper:
             
         return True
 
+    def _search_for_careers_url(self, page, company):
+        """Use Playwright to search DuckDuckGo for the company's careers site."""
+        import urllib.parse
+        try:
+            logger.info(f"Searching web for {company} careers URL...")
+            page.goto(f"https://html.duckduckgo.com/html/?q={company}+careers+myworkdayjobs+OR+icims")
+            
+            # Extract links from DuckDuckGo HTML results
+            results = page.query_selector_all("a.result__url")
+            for result in results:
+                url = result.get_attribute("href")
+                if url:
+                    # DuckDuckGo wraps links in a redirect
+                    if "uddg=" in url:
+                        parsed = urllib.parse.urlparse(url)
+                        qs = urllib.parse.parse_qs(parsed.query)
+                        if "uddg" in qs:
+                            url = qs["uddg"][0]
+                            
+                    if "myworkdayjobs.com" in url or "icims.com" in url:
+                        logger.info(f"Found ATS URL via web search: {url}")
+                        return url
+                        
+            logger.info(f"Could not find Workday/iCIMS URL via web search for {company}.")
+            return None
+        except Exception as e:
+            logger.error(f"Web search failed for {company}: {e}")
+            return None
+
     def get_matching_jobs(self):
         logger.info("Initializing Headless Scraper (Playwright) for Workday/iCIMS...")
         matched_jobs = []
@@ -48,17 +77,24 @@ class HeadlessScraper:
                 
                 for company in self.target_companies:
                     norm_company = company.lower()
-                    if norm_company in known_urls:
-                        logger.info(f"Headless Scraper running for {company} at {known_urls[norm_company]}...")
-                        # Simulate fetching
-                        # page.goto(known_urls[norm_company])
-                        # ... parse with BeautifulSoup/Playwright ...
+                    target_url = known_urls.get(norm_company)
+                    
+                    if not target_url:
+                        # Attempt web search if not mapped
+                        target_url = self._search_for_careers_url(page, company)
                         
-                        processed_companies.append(company)
+                    if target_url:
+                        logger.info(f"Headless Scraper running for {company} at {target_url}...")
+                        # Simulate fetching and parsing the ATS page
+                        try:
+                            # page.goto(target_url)
+                            # ... parse with BeautifulSoup/Playwright ...
+                            # If successful, mark as processed so it doesn't fall to Paid API
+                            processed_companies.append(company)
+                        except Exception as e:
+                            logger.error(f"Failed to scrape {target_url}: {e}")
                     else:
-                        # For unmapped companies, we could attempt a Google search to find their Workday/iCIMS url.
-                        # For now, we'll skip them so they fall back to the Paid API.
-                        pass
+                        logger.info(f"Skipping {company} - will fallback to Paid API.")
                         
                 browser.close()
         except Exception as e:
