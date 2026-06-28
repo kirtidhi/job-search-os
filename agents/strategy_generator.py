@@ -28,7 +28,8 @@ class StrategyGenerator:
         cl_sys = (
             "You are an expert career strategist. "
             "Given a Job Description and Company Research, output a highly tailored 'Cover Letter' "
-            "that references their strategic initiatives."
+            "that references their strategic initiatives. Ensure the content is heavily humanized. "
+            "You must never, never, absolutely never use em dashes (—)."
         )
         cl_doc = self.llm.generate(prompt, system_prompt=cl_sys)
         cl_path = os.path.join(output_dir, "cover_letter.md")
