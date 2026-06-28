@@ -5,11 +5,11 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-class ATSScraper:
+from scrapers.base_scraper import BaseScraper
+
+class ATSScraper(BaseScraper):
     def __init__(self, target_companies, role_preferences, locations):
-        self.target_companies = target_companies
-        self.role_preferences = [r.lower() for r in role_preferences]
-        self.locations = [l.lower() for l in locations]
+        super().__init__(target_companies, role_preferences, locations)
 
     def _normalize_name(self, name):
         name = name.lower()
@@ -38,25 +38,7 @@ class ATSScraper:
             logger.warning(f"Lever fetch failed for {company}: {e}")
         return [], None
 
-    def _is_match(self, title, location):
-        title = title.lower()
-        location = location.lower() if location else ""
-        
-        # Check if role matches
-        role_match = any(
-            re.search(r'\b' + re.escape(role) + r'\b', title)
-            for role in self.role_preferences
-        )
-        if not role_match:
-            return False
-            
-        # Check if location matches
-        if self.locations:
-            loc_match = any(loc in location for loc in self.locations)
-            if not loc_match:
-                return False
-            
-        return True
+
 
     def _fetch_jd_text(self, url):
         try:
@@ -132,6 +114,8 @@ class ATSScraper:
                             "location": location,
                             "jd": jd_text
                         })
+
+        self.tier1_resolved = len(self.target_companies) - len(remaining_companies)
 
         # 2. Tier 2 Option A: Headless Scraper (Workday, iCIMS, custom)
         if False and remaining_companies: # Skipped until parser is built
