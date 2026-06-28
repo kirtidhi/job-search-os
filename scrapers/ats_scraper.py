@@ -134,7 +134,7 @@ class ATSScraper:
                         })
 
         # 2. Tier 2 Option A: Headless Scraper (Workday, iCIMS, custom)
-        if remaining_companies:
+        if False and remaining_companies: # Skipped until parser is built
             from scrapers.headless_scraper import HeadlessScraper
             logger.info(f"Routing {len(remaining_companies)} remaining companies to Headless Scraper...")
             
