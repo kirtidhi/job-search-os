@@ -13,19 +13,8 @@ class WorkspaceManager:
     def __init__(self, tracker_sheet_id):
         self.tracker_sheet_id = tracker_sheet_id
         try:
-            scopes = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
-            creds = None
-            if os.path.exists('token.pickle'):
-                with open('token.pickle', 'rb') as token:
-                    creds = pickle.load(token)
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
-                    flow = InstalledAppFlow.from_client_secrets_file('credentials.json', scopes)
-                    creds = flow.run_local_server(port=0)
-                with open('token.pickle', 'wb') as token:
-                    pickle.dump(creds, token)
+            import google.auth
+            creds, project = google.auth.default(scopes=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets'])
 
             self.drive_service = build('drive', 'v3', credentials=creds)
             self.sheets_service = build('sheets', 'v4', credentials=creds)
@@ -46,8 +35,16 @@ class WorkspaceManager:
         if not os.path.exists(filepath):
             logger.warning(f"File not found for upload, skipping: {filepath}")
             return ""
+        
+        # Remove the original extension from the document name
         name = os.path.basename(filepath)
-        metadata = {'name': name, 'parents': [folder_id]}
+        name_without_ext = os.path.splitext(name)[0]
+        
+        metadata = {
+            'name': name_without_ext, 
+            'parents': [folder_id],
+            'mimeType': 'application/vnd.google-apps.document'
+        }
         media = MediaFileUpload(filepath, mimetype=mimetype)
         file = self.drive_service.files().create(body=metadata, media_body=media, fields='id, webViewLink').execute()
         return file.get('webViewLink')
@@ -83,7 +80,7 @@ class WorkspaceManager:
                 body = {'values': values}
                 self.sheets_service.spreadsheets().values().append(
                     spreadsheetId=self.tracker_sheet_id,
-                    range="Sheet1!A:H",
+                    range="'Job Application Tracker'!A:H",
                     valueInputOption="USER_ENTERED",
                     body=body
                 ).execute()
