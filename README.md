@@ -23,6 +23,7 @@ The pipeline consists of 5 stages, orchestrated by `orchestrator.py`:
 2. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
+   playwright install chromium
    ```
 
 3. **Google Workspace Authentication:**

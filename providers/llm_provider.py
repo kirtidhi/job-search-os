@@ -45,7 +45,7 @@ class AnthropicProvider(LLMProvider):
         return response.content[0].text
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "gemini-3.1-pro"):
+    def __init__(self, api_key: str = None, model: str = "gemini-pro-latest"):
         from google import genai
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
         self.model = model
@@ -67,6 +67,9 @@ class MockProvider(LLMProvider):
     def __init__(self, **kwargs):
         pass
     def generate(self, prompt: str, system_prompt: str = None) -> str:
+        if "fit_score" in prompt or "non-negotiables" in prompt.lower():
+            return '{"fit_score": 0.9, "reason": "Mock fit.", "meets_all_non_negotiables": true}'
+            
         if system_prompt and "JSON" in system_prompt:
             return '{"fit_score": 0.9, "reason": "Perfect mock fit.", "meets_all_non_negotiables": true}'
         

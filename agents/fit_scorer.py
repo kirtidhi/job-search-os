@@ -17,10 +17,6 @@ Instead of just doing keyword matching, extract the underlying Semantic Profile 
 CANDIDATE'S RESUME:
 {base_resume[:4000]}
 
-Based on the resume, the candidate is a Product Manager / Solutions Architect specializing in:
-- Domain: Payments, FinTech, Identity, AdTech, B2B Enterprise APIs
-- Archetype: Product Manager, Pre-Sales, Solutions Architecture
-
 JOB DESCRIPTION TO ANALYZE:
 JOB TITLE: {job.get('title')}
 COMPANY: {job.get('company')}
@@ -31,11 +27,12 @@ CANDIDATE'S NON-NEGOTIABLES:
 {json.dumps(non_negotiables, indent=2)}
 
 INSTRUCTIONS:
-1. Compare the Job's Domain (e.g. B2C Travel, B2B Payments, Core Infrastructure) to the Candidate's Domain.
-2. Compare the Job's Archetype (e.g. Hands-on Software Engineer vs Product Manager vs Architect) to the Candidate's Archetype.
-3. If there is a massive Domain mismatch (e.g. B2C Travel vs B2B Payments) OR an Archetype mismatch (e.g. SWE vs PM), the fit score should drop drastically (below 0.6).
-4. Provide a fit score between 0.0 and 1.0.
-5. CRITICAL RULE: If the job violates ANY of the Candidate's Non-Negotiables (including location or language requirements), you MUST set "meets_all_non_negotiables" to false AND set "fit_score" to exactly 0.0, regardless of how good the Domain or Archetype match is.
+1. First, extract the candidate's Domain and Archetype from the resume above.
+2. Compare the Job's Domain (e.g. B2C Travel, B2B Payments, Core Infrastructure) to the Candidate's Domain.
+3. Compare the Job's Archetype (e.g. Hands-on Software Engineer vs Product Manager vs Architect) to the Candidate's Archetype.
+4. If there is a massive Domain mismatch (e.g. B2C Travel vs B2B Payments) OR an Archetype mismatch (e.g. SWE vs PM), the fit score should drop drastically (below 0.6).
+5. Provide a fit score between 0.0 and 1.0.
+6. CRITICAL RULE: If the job violates ANY of the Candidate's Non-Negotiables (including location or language requirements), you MUST set "meets_all_non_negotiables" to false AND set "fit_score" to exactly 0.0, regardless of how good the Domain or Archetype match is.
 
 Output your response as raw JSON matching this schema exactly:
 {{

@@ -84,96 +84,96 @@ class JobSearchOS:
         if step in ["all", "interim"]:
             # 1. Ingestion & Filtering
             jobs = self.scraper.get_matching_jobs()
-        if not jobs:
-            logger.info("No new matching jobs found today.")
-            logger.info("=== Pipeline Completed ===")
-            return
-            
-        companies_found = len(set(job.get('company') for job in jobs))
-        logger.info(f"Interim Stage: Found {len(jobs)} roles across {companies_found} companies.")
-
-        roles_to_process = []
-        filtered_out_roles = []
-            
-        for job in jobs:
-            try:
-                # 1.5 State Store Check
-                if not self.state_manager.is_new_role(job.get('url')):
-                    logger.info(f"Skipping already processed role: {job.get('title')} at {job.get('company')}")
-                    continue
-                    
-                logger.info(f"Processing Role: {job.get('title')} at {job.get('company')}")
-                
-                # 1.6 Semantic Fit Scoring
-                fit_data = self.fit_scorer.score_fit(job, self.non_negotiables, base_resume_content)
-                logger.info(f"Fit Score: {fit_data['score']} - {fit_data['reason']}")
-                
-                if fit_data['score'] < self.fit_threshold:
-                    logger.info(f"Role rejected due to low fit score (< {self.fit_threshold}).")
-                    self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'REJECTED')
-                    filtered_out_roles.append({"job": job, "fit_data": fit_data})
-                    continue
-                
-                roles_to_process.append({"job": job, "fit_data": fit_data})
-            except Exception as e:
-                logger.error(f"Error scoring {job.get('title')}: {str(e)}")
-                
-        # --- INTERIM REPORT ---
-        report_content = f"# Interim Pipeline Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        report_content += f"**Total Roles Found:** {len(jobs)}\n"
-        report_content += f"**Companies Searched:** {companies_found}\n"
-        
-        # Add ATS processing breakdown
-        from scrapers.ats_scraper import ATSScraper
-        total_companies = len(self.scraper.target_companies)
-        report_content += f"\n## ATS Processing Breakdown\n"
-        report_content += f"We processed {total_companies} companies across our pipeline tiers.\n"
-        report_content += f"- **Tier 1 (API - Greenhouse/Lever):** ~25-30 companies.\n"
-        report_content += f"- **Tier 2A (Headless - Workday/iCIMS):** Attempted for companies not supported by APIs.\n"
-        report_content += f"- **Tier 2B (Paid API Fallback):** Processed the remaining proprietary platforms.\n\n"
-        report_content += f"> **Notice regarding Paid API Quota:** We will use the free API quota first (e.g. 100 free searches). If we need to run it extensively again, we might ask you to provide an API key for the commercial scraper.\n\n"
-
-        report_content += f"**Roles Proceeding to Generation:** {len(roles_to_process)}\n"
-        report_content += f"**Roles Filtered Out:** {len(filtered_out_roles)}\n\n"
-        
-        non_negotiable_failures = [r for r in filtered_out_roles if not r['fit_data'].get('meets_all', True)]
-        if non_negotiable_failures:
-            report_content += "## Filtered Due to Non-Negotiables\n"
-            for r in non_negotiable_failures:
-                report_content += f"- **{r['job'].get('company')} - {r['job'].get('title')}**: {r['fit_data'].get('reason')}\n"
-            report_content += "\n"
-
-        other_failures = [r for r in filtered_out_roles if r['fit_data'].get('meets_all', True)]
-        if other_failures:
-            report_content += "## Filtered Due to Low Fit Score (Domain/Archetype)\n"
-            for r in other_failures:
-                report_content += f"- **{r['job'].get('company')} - {r['job'].get('title')}**: {r['fit_data'].get('reason')}\n"
-            report_content += "\n"
-
-        with open("interim_report.md", "w") as f:
-            f.write(report_content)
-        
-        logger.info(f"Interim report generated: interim_report.md. Proceeding to asset generation for {len(roles_to_process)} roles.")
-
-        # --- INTERIM APPROVAL STAGE ---
-        with open(pending_roles_file, "w") as f:
-            json.dump(roles_to_process, f, indent=2)
-            
-        logger.info(f"Saved pending roles to {pending_roles_file}.")
-        logger.info("ACTION REQUIRED: Please review interim_report.md.")
-        
-        if step == "interim":
-            logger.info("Step 'interim' completed. Exiting. Run with '--step generate' to resume.")
-            return
-            
-        # Pause for user approval if running 'all' interactively
-        if sys.stdin.isatty():
-            user_input = input("\nPress Enter to approve and proceed to Stage 2 (Asset Generation), or type 'cancel' to stop: ")
-            if user_input.strip().lower() == 'cancel':
-                logger.info("Pipeline cancelled by user.")
+            if not jobs:
+                logger.info("No new matching jobs found today.")
+                logger.info("=== Pipeline Completed ===")
                 return
-        else:
-            logger.info("Running in non-interactive mode. Proceeding automatically to generation...")
+                
+            companies_found = len(set(job.get('company') for job in jobs))
+            logger.info(f"Interim Stage: Found {len(jobs)} roles across {companies_found} companies.")
+
+            roles_to_process = []
+            filtered_out_roles = []
+                
+            for job in jobs:
+                try:
+                    # 1.5 State Store Check
+                    if not self.state_manager.is_new_role(job.get('url')):
+                        logger.info(f"Skipping already processed role: {job.get('title')} at {job.get('company')}")
+                        continue
+                        
+                    logger.info(f"Processing Role: {job.get('title')} at {job.get('company')}")
+                    
+                    # 1.6 Semantic Fit Scoring
+                    fit_data = self.fit_scorer.score_fit(job, self.non_negotiables, base_resume_content)
+                    logger.info(f"Fit Score: {fit_data['score']} - {fit_data['reason']}")
+                    
+                    if fit_data['score'] < self.fit_threshold:
+                        logger.info(f"Role rejected due to low fit score (< {self.fit_threshold}).")
+                        self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'REJECTED')
+                        filtered_out_roles.append({"job": job, "fit_data": fit_data})
+                        continue
+                    
+                    roles_to_process.append({"job": job, "fit_data": fit_data})
+                except Exception as e:
+                    logger.error(f"Error scoring {job.get('title')}: {str(e)}")
+                    
+            # --- INTERIM REPORT ---
+            report_content = f"# Interim Pipeline Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            report_content += f"**Total Roles Found:** {len(jobs)}\n"
+            report_content += f"**Companies Searched:** {companies_found}\n"
+            
+            # Add ATS processing breakdown
+            from scrapers.ats_scraper import ATSScraper
+            total_companies = len(self.scraper.target_companies)
+            report_content += f"\n## ATS Processing Breakdown\n"
+            report_content += f"We processed {total_companies} companies across our pipeline tiers.\n"
+            report_content += f"- **Tier 1 (API - Greenhouse/Lever):** ~25-30 companies.\n"
+            report_content += f"- **Tier 2A (Headless - Workday/iCIMS):** Attempted for companies not supported by APIs.\n"
+            report_content += f"- **Tier 2B (Paid API Fallback):** Processed the remaining proprietary platforms.\n\n"
+            report_content += f"> **Notice regarding Paid API Quota:** We will use the free API quota first (e.g. 100 free searches). If we need to run it extensively again, we might ask you to provide an API key for the commercial scraper.\n\n"
+
+            report_content += f"**Roles Proceeding to Generation:** {len(roles_to_process)}\n"
+            report_content += f"**Roles Filtered Out:** {len(filtered_out_roles)}\n\n"
+            
+            non_negotiable_failures = [r for r in filtered_out_roles if not r['fit_data'].get('meets_all', True)]
+            if non_negotiable_failures:
+                report_content += "## Filtered Due to Non-Negotiables\n"
+                for r in non_negotiable_failures:
+                    report_content += f"- **{r['job'].get('company')} - {r['job'].get('title')}**: {r['fit_data'].get('reason')}\n"
+                report_content += "\n"
+
+            other_failures = [r for r in filtered_out_roles if r['fit_data'].get('meets_all', True)]
+            if other_failures:
+                report_content += "## Filtered Due to Low Fit Score (Domain/Archetype)\n"
+                for r in other_failures:
+                    report_content += f"- **{r['job'].get('company')} - {r['job'].get('title')}**: {r['fit_data'].get('reason')}\n"
+                report_content += "\n"
+
+            with open("interim_report.md", "w") as f:
+                f.write(report_content)
+            
+            logger.info(f"Interim report generated: interim_report.md. Proceeding to asset generation for {len(roles_to_process)} roles.")
+
+            # --- INTERIM APPROVAL STAGE ---
+            with open(pending_roles_file, "w") as f:
+                json.dump(roles_to_process, f, indent=2)
+                
+            logger.info(f"Saved pending roles to {pending_roles_file}.")
+            logger.info("ACTION REQUIRED: Please review interim_report.md.")
+            
+            if step == "interim":
+                logger.info("Step 'interim' completed. Exiting. Run with '--step generate' to resume.")
+                return
+                
+            # Pause for user approval if running 'all' interactively
+            if sys.stdin.isatty():
+                user_input = input("\nPress Enter to approve and proceed to Stage 2 (Asset Generation), or type 'cancel' to stop: ")
+                if user_input.strip().lower() == 'cancel':
+                    logger.info("Pipeline cancelled by user.")
+                    return
+            else:
+                logger.info("Running in non-interactive mode. Proceeding automatically to generation...")
             
     if step in ["all", "generate"]:
         # Re-load roles after potential user modifications

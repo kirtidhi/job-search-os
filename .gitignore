@@ -11,3 +11,4 @@ output/
 !README.md
 config.json
 *.db
+pending_roles.json

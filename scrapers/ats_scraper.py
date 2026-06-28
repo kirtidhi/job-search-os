@@ -13,7 +13,6 @@ class ATSScraper:
 
     def _normalize_name(self, name):
         name = name.lower()
-        import re
         name = re.sub(r'[^a-z0-9]', '', name)
         return name
 

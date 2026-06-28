@@ -73,30 +73,31 @@ class HeadlessScraper:
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                
-                for company in self.target_companies:
-                    norm_company = company.lower()
-                    target_url = known_urls.get(norm_company)
+                try:
+                    page = browser.new_page()
                     
-                    if not target_url:
-                        # Attempt web search if not mapped
-                        target_url = self._search_for_careers_url(page, company)
+                    for company in self.target_companies:
+                        norm_company = company.lower()
+                        target_url = known_urls.get(norm_company)
                         
-                    if target_url:
-                        logger.info(f"Headless Scraper running for {company} at {target_url}...")
-                        # Simulate fetching and parsing the ATS page
-                        try:
-                            # page.goto(target_url)
-                            # ... parse with BeautifulSoup/Playwright ...
-                            # If successful, mark as processed so it doesn't fall to Paid API
-                            processed_companies.append(company)
-                        except Exception as e:
-                            logger.error(f"Failed to scrape {target_url}: {e}")
-                    else:
-                        logger.info(f"Skipping {company} - will fallback to Paid API.")
-                        
-                browser.close()
+                        if not target_url:
+                            # Attempt web search if not mapped
+                            target_url = self._search_for_careers_url(page, company)
+                            
+                        if target_url:
+                            logger.info(f"Headless Scraper running for {company} at {target_url}...")
+                            # Simulate fetching and parsing the ATS page
+                            try:
+                                page.goto(target_url, wait_until="domcontentloaded")
+                                # ... parse with BeautifulSoup/Playwright ...
+                                # If successful, mark as processed so it doesn't fall to Paid API
+                                processed_companies.append(company)
+                            except Exception as e:
+                                logger.error(f"Failed to scrape {target_url}: {e}")
+                        else:
+                            logger.info(f"Skipping {company} - will fallback to Paid API.")
+                finally:
+                    browser.close()
         except Exception as e:
             logger.error(f"Headless Scraper encountered an error: {e}")
             
