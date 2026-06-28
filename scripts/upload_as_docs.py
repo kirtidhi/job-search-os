@@ -8,7 +8,7 @@ try:
     drive_service = build('drive', 'v3', credentials=credentials)
     sheets_service = build('sheets', 'v4', credentials=credentials)
     
-    tracker_sheet_id = '1nKjjHbo_zqlRiNo1SymrLDOc28YkbE5Hvk4CdxvYFIA'
+    import os; from dotenv import load_dotenv; load_dotenv(); tracker_sheet_id = os.getenv('TRACKER_SHEET_ID')
 
     def create_folder(name):
         folder_metadata = {
@@ -18,30 +18,30 @@ try:
         folder = drive_service.files().create(body=folder_metadata, fields='id').execute()
         return folder.get('id')
 
-    def upload_file(filepath, folder_id, mimetype):
-        name = os.path.basename(filepath)
-        metadata = {'name': name, 'parents': [folder_id]}
-        media = MediaFileUpload(filepath, mimetype=mimetype)
+    def upload_file_as_doc(filepath, folder_id, source_mimetype, doc_name):
+        metadata = {
+            'name': doc_name, 
+            'parents': [folder_id],
+            'mimeType': 'application/vnd.google-apps.document' # This triggers conversion!
+        }
+        media = MediaFileUpload(filepath, mimetype=source_mimetype)
         file = drive_service.files().create(body=metadata, media_body=media, fields='id, webViewLink').execute()
         return file.get('webViewLink')
 
     # Job 1
-    folder1_id = create_folder("Woolworths Group - Product Manager, Platform Capabilities - 2026-06-26")
+    folder1_id = create_folder("Woolworths Group - Product Manager, Platform Capabilities - Docs")
     base1 = "output/WoolworthsGroup_Woolworths_20260626_080944"
-    resume1 = upload_file(f"{base1}/resume.html", folder1_id, 'text/html')
-    cl1 = upload_file(f"{base1}/cover_letter.md", folder1_id, 'text/markdown')
-    play1 = upload_file(f"{base1}/playbook.md", folder1_id, 'text/markdown')
+    resume1 = upload_file_as_doc(f"{base1}/resume.html", folder1_id, 'text/html', 'Resume')
+    cl1 = upload_file_as_doc(f"{base1}/cover_letter.md", folder1_id, 'text/markdown', 'Cover Letter')
+    play1 = upload_file_as_doc(f"{base1}/playbook.md", folder1_id, 'text/markdown', 'Playbook')
 
     # Job 2
-    folder2_id = create_folder("Woolworths Group - Senior Product Manager, Client Experience - 2026-06-26")
+    folder2_id = create_folder("Woolworths Group - Senior Product Manager, Client Experience - Docs")
     base2 = "output/WoolworthsGroup_Woolworths_20260626_080945"
-    resume2 = upload_file(f"{base2}/resume.html", folder2_id, 'text/html')
-    cl2 = upload_file(f"{base2}/cover_letter.md", folder2_id, 'text/markdown')
-    play2 = upload_file(f"{base2}/playbook.md", folder2_id, 'text/markdown')
+    resume2 = upload_file_as_doc(f"{base2}/resume.html", folder2_id, 'text/html', 'Resume')
+    cl2 = upload_file_as_doc(f"{base2}/cover_letter.md", folder2_id, 'text/markdown', 'Cover Letter')
+    play2 = upload_file_as_doc(f"{base2}/playbook.md", folder2_id, 'text/markdown', 'Playbook')
 
-    # Now update the last 2 rows in the sheet. Let's just append new rows and clear old or just overwrite.
-    # To overwrite, we need to know the row index. Or just append the new corrected ones.
-    # Let's read the sheet to find the rows.
     result = sheets_service.spreadsheets().values().get(spreadsheetId=tracker_sheet_id, range="'Job Application Tracker'!A:H").execute()
     values = result.get('values', [])
     
@@ -66,6 +66,6 @@ try:
             spreadsheetId=tracker_sheet_id, range=f"'Job Application Tracker'!F{row2_idx}:H{row2_idx}",
             valueInputOption="USER_ENTERED", body=body).execute()
 
-    print("Successfully uploaded to Drive and updated the tracker sheet links!")
+    print("Successfully converted and uploaded files as Google Docs!")
 except Exception as e:
     print(f"Error: {e}")

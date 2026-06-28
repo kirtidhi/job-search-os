@@ -12,3 +12,9 @@ output/
 config.json
 *.db
 pending_roles.json
+
+ats_report.json
+woolworths_jobs.json
+*.txt
+matching_jobs.md
+ab_test_results.md

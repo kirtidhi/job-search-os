@@ -15,7 +15,7 @@ def check_workday(company):
         url = f"https://{company}.{wd}.myworkdayjobs.com/"
         try:
             res = requests.head(url, timeout=3, allow_redirects=True)
-            if res.status_code < 400 or res.status_code == 403:
+            if res.status_code in [200, 301, 302]:
                 return f"Workday ({wd})"
         except:
             pass
@@ -29,7 +29,7 @@ def check_icims(company):
     for url in urls:
         try:
             res = requests.head(url, timeout=3, allow_redirects=True)
-            if res.status_code < 400 or res.status_code == 403:
+            if res.status_code in [200, 301, 302]:
                 return "iCIMS"
         except:
             pass

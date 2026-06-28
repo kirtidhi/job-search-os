@@ -5,7 +5,7 @@ try:
     credentials, project = google.auth.default()
     sheets_service = build('sheets', 'v4', credentials=credentials)
     
-    tracker_sheet_id = '1nKjjHbo_zqlRiNo1SymrLDOc28YkbE5Hvk4CdxvYFIA'
+    import os; from dotenv import load_dotenv; load_dotenv(); tracker_sheet_id = os.getenv('TRACKER_SHEET_ID')
     sheet_metadata = sheets_service.spreadsheets().get(spreadsheetId=tracker_sheet_id).execute()
     sheets = sheet_metadata.get('sheets', '')
     for sheet in sheets:

@@ -8,7 +8,7 @@ try:
     drive_service = build('drive', 'v3', credentials=credentials)
     sheets_service = build('sheets', 'v4', credentials=credentials)
     
-    tracker_sheet_id = '1nKjjHbo_zqlRiNo1SymrLDOc28YkbE5Hvk4CdxvYFIA'
+    import os; from dotenv import load_dotenv; load_dotenv(); tracker_sheet_id = os.getenv('TRACKER_SHEET_ID')
 
     def create_folder(name):
         folder_metadata = {

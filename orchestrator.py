@@ -175,48 +175,48 @@ class JobSearchOS:
             else:
                 logger.info("Running in non-interactive mode. Proceeding automatically to generation...")
             
-    if step in ["all", "generate"]:
-        # Re-load roles after potential user modifications
-        try:
-            with open(pending_roles_file, "r") as f:
-                roles_to_process = json.load(f)
-            logger.info(f"Resuming with {len(roles_to_process)} roles for generation.")
-        except Exception as e:
-            logger.error(f"Could not load {pending_roles_file}: {e}. Aborting generation.")
-            return
-
-        # --- ASSET GENERATION ---
-        for item in roles_to_process:
-            job = item["job"]
-            fit_data = item["fit_data"]
+        if step in ["all", "generate"]:
+            # Re-load roles after potential user modifications
             try:
-                # 1.7 Create Output Directory
-                title_safe = re.sub(r'[^\w\-]', '_', job.get('title', 'unknown'))
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                output_dir = os.path.join("output", f"{job.get('company', 'unknown')}_{title_safe}_{timestamp}")
-                os.makedirs(output_dir, exist_ok=True)
-                
-                # 2. Core Asset Tailoring
-                tailored_resume = self.resume_tailor.tailor(job, output_dir)
-                
-                # 3. Deep Company Research
-                research_data = self.researcher.research(job.get('company'))
-                
-                # 4. Strategic Generation
-                strategy_docs = self.strategy_gen.generate(job, research_data, output_dir, base_resume_content)
-                
-                # 5. Workspace Sync
-                self.workspace.sync(job, tailored_resume['filename'], strategy_docs['playbook'], strategy_docs['cover_letter'], fit_data)
-                
-                # Mark as processed in state
-                self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'PROCESSED')
-                
-                logger.info(f"Successfully processed {job.get('title')} at {job.get('company')}")
-                
+                with open(pending_roles_file, "r") as f:
+                    roles_to_process = json.load(f)
+                logger.info(f"Resuming with {len(roles_to_process)} roles for generation.")
             except Exception as e:
-                logger.error(f"Error processing {job.get('title')}: {str(e)}")
+                logger.error(f"Could not load {pending_roles_file}: {e}. Aborting generation.")
+                return
+
+            # --- ASSET GENERATION ---
+            for item in roles_to_process:
+                job = item["job"]
+                fit_data = item["fit_data"]
+                try:
+                    # 1.7 Create Output Directory
+                    title_safe = re.sub(r'[^\w\-]', '_', job.get('title', 'unknown'))
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    output_dir = os.path.join("output", f"{job.get('company', 'unknown')}_{title_safe}_{timestamp}")
+                    os.makedirs(output_dir, exist_ok=True)
                 
-        logger.info("=== Pipeline Completed ===")
+                    # 2. Core Asset Tailoring
+                    tailored_resume = self.resume_tailor.tailor(job, output_dir)
+                
+                    # 3. Deep Company Research
+                    research_data = self.researcher.research(job.get('company'))
+                
+                    # 4. Strategic Generation
+                    strategy_docs = self.strategy_gen.generate(job, research_data, output_dir, base_resume_content)
+                
+                    # 5. Workspace Sync
+                    self.workspace.sync(job, tailored_resume['filename'], strategy_docs['playbook'], strategy_docs['cover_letter'], fit_data)
+                
+                    # Mark as processed in state
+                    self.state_manager.mark_seen(job.get('url'), job.get('company'), job.get('title'), fit_data['score'], 'PROCESSED')
+                
+                    logger.info(f"Successfully processed {job.get('title')} at {job.get('company')}")
+                
+                except Exception as e:
+                    logger.error(f"Error processing {job.get('title')}: {str(e)}")
+                
+            logger.info("=== Pipeline Completed ===")
 
 
 def main():

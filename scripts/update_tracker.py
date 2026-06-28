@@ -5,7 +5,7 @@ try:
     credentials, project = google.auth.default()
     sheets_service = build('sheets', 'v4', credentials=credentials)
     
-    tracker_sheet_id = '1nKjjHbo_zqlRiNo1SymrLDOc28YkbE5Hvk4CdxvYFIA'
+    import os; from dotenv import load_dotenv; load_dotenv(); tracker_sheet_id = os.getenv('TRACKER_SHEET_ID')
     values = [
         ['Woolworths Group', 'Product Manager, Platform Capabilities', 'https://careers.woolworthsgroup.com.au/en_GB/apply/JobDetail/92248?source=LinkedIn', '2026-06-26', '0.9', 'output/WoolworthsGroup_Woolworths_20260626_080944/resume.html', 'output/WoolworthsGroup_Woolworths_20260626_080944/cover_letter.md', 'output/WoolworthsGroup_Woolworths_20260626_080944/playbook.md'],
         ['Woolworths Group', 'Senior Product Manager, Client Experience', 'https://careers.woolworthsgroup.com.au/en_GB/apply/JobDetail/92524?source=LinkedIn', '2026-06-26', '0.95', 'output/WoolworthsGroup_Woolworths_20260626_080945/resume.html', 'output/WoolworthsGroup_Woolworths_20260626_080945/cover_letter.md', 'output/WoolworthsGroup_Woolworths_20260626_080945/playbook.md']

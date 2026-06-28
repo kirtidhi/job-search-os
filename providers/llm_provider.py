@@ -45,7 +45,7 @@ class AnthropicProvider(LLMProvider):
         return response.content[0].text
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, api_key: str = None, model: str = "gemini-pro-latest"):
+    def __init__(self, api_key: str = None, model: str = "gemini-3.1-pro"):
         from google import genai
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
         self.model = model

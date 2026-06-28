@@ -91,7 +91,7 @@ class HeadlessScraper:
                                 page.goto(target_url, wait_until="domcontentloaded")
                                 # ... parse with BeautifulSoup/Playwright ...
                                 # If successful, mark as processed so it doesn't fall to Paid API
-                                processed_companies.append(company)
+                                # processed_companies.append(company) # Commented out so it falls through to Paid API
                             except Exception as e:
                                 logger.error(f"Failed to scrape {target_url}: {e}")
                         else:
