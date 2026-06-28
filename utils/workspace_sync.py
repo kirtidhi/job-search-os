@@ -13,8 +13,22 @@ class WorkspaceManager:
     def __init__(self, tracker_sheet_id):
         self.tracker_sheet_id = tracker_sheet_id
         try:
-            import google.auth
-            creds, project = google.auth.default(scopes=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets'])
+            creds = None
+            scopes = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
+            if os.path.exists('token.pickle'):
+                with open('token.pickle', 'rb') as token:
+                    creds = pickle.load(token)
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    creds_path = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials.json")
+                    if not os.path.exists(creds_path):
+                        raise FileNotFoundError(f"Credentials file not found at {creds_path}. Please download it from Google Cloud Console.")
+                    flow = InstalledAppFlow.from_client_secrets_file(creds_path, scopes)
+                    creds = flow.run_local_server(port=0)
+                with open('token.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
 
             self.drive_service = build('drive', 'v3', credentials=creds)
             self.sheets_service = build('sheets', 'v4', credentials=creds)
@@ -62,8 +76,8 @@ class WorkspaceManager:
             
             # 2. Upload files
             resume_link = self._upload_file(tailored_resume_path, folder_id, 'text/html')
-            strategy_link = self._upload_file(strategy_doc_path, folder_id, 'text/markdown')
-            cl_link = self._upload_file(cover_letter_path, folder_id, 'text/markdown') if cover_letter_path else ""
+            strategy_link = self._upload_file(strategy_doc_path, folder_id, 'text/plain')
+            cl_link = self._upload_file(cover_letter_path, folder_id, 'text/plain') if cover_letter_path else ""
             
             # 3. Append to tracker sheet
             if self.tracker_sheet_id and self.tracker_sheet_id != "YOUR_GOOGLE_SHEET_ID":

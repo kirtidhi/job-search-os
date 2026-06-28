@@ -53,8 +53,7 @@ class GeminiProvider(LLMProvider):
     def generate(self, prompt: str, system_prompt: str = None) -> str:
         from google.genai import types
         config = types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.7
+            system_instruction=system_prompt
         )
         response = self.client.models.generate_content(
             model=self.model,
