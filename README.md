@@ -37,6 +37,7 @@ The pipeline consists of 5 stages, orchestrated by `orchestrator.py`:
    - The corresponding API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY`)
    - `TRACKER_SHEET_ID` — your Google Sheet ID
    - `BASE_RESUME_PATH` — path to your base resume HTML file
+   - `GOOGLE_CREDENTIALS_PATH` — path to your downloaded `credentials.json` (defaults to `./credentials.json`)
 
 ## Usage
 
